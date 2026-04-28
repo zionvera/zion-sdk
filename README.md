@@ -70,6 +70,7 @@ manageVault();
 - [Configuration Reference](docs/configuration.md): All config options, network setup, RPC override, contract ID, and debug mode.
 - [Usage Guide](docs/usage-guide.md): Detailed examples and best practices.
 - [Wallet Integration](docs/wallet-integration.md): How to connect frontend wallets like Freighter.
+- [Browser Compatibility](docs/browser-compatibility.md): Configuration for Vite, Webpack, and polyfills.
 
 ## Contributing
 
