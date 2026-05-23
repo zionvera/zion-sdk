@@ -38,12 +38,13 @@ export class ProtoxVault {
   async deposit(amount: number | bigint): Promise<SorobanRpc.Api.GetTransactionResponse> {
     if (!this.wallet) throw new Error("Wallet not connected");
     const userAddress = await this.wallet.getAddress();
+    const normalizedAmount = this.normalizeAmount(amount, 'Deposit');
 
     const transaction = await this.buildContractCall(
       'deposit',
       [
         new Address(userAddress).toScVal(),
-        nativeToScVal(BigInt(amount), { type: 'i128' })
+        nativeToScVal(normalizedAmount, { type: 'i128' })
       ]
     );
 
@@ -56,12 +57,13 @@ export class ProtoxVault {
   async withdraw(amount: number | bigint): Promise<SorobanRpc.Api.GetTransactionResponse> {
     if (!this.wallet) throw new Error("Wallet not connected");
     const userAddress = await this.wallet.getAddress();
+    const normalizedAmount = this.normalizeAmount(amount, 'Withdrawal');
 
     const transaction = await this.buildContractCall(
       'withdraw',
       [
         new Address(userAddress).toScVal(),
-        nativeToScVal(BigInt(amount), { type: 'i128' })
+        nativeToScVal(normalizedAmount, { type: 'i128' })
       ]
     );
 
@@ -135,6 +137,21 @@ export class ProtoxVault {
     }
 
     return simulation.result.retval;
+  }
+
+  private normalizeAmount(amount: number | bigint, operationName: string): bigint {
+    if (typeof amount === 'number') {
+      if (!Number.isFinite(amount) || !Number.isInteger(amount)) {
+        throw new Error(`${operationName} amount must be an integer.`);
+      }
+    }
+
+    const normalizedAmount = BigInt(amount);
+    if (normalizedAmount <= 0n) {
+      throw new Error(`${operationName} amount must be greater than zero.`);
+    }
+
+    return normalizedAmount;
   }
 
   // TODO: Implement claim_rewards function
