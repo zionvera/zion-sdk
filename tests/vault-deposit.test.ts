@@ -59,12 +59,24 @@ describe("Vault Deposit Method", () => {
 
     jest.spyOn(client, "buildTransaction").mockResolvedValue(mockBuilder);
     jest.spyOn(client, "simulateTransaction").mockResolvedValue({
-      result: { retval: {} as any },
-      minResourceFee: "200",
-      transactionData: {} as any,
+      status: "SUCCESS",
+      success: true,
+      resourceUsage: {
+        cpuInstructions: 0,
+        memoryBytes: 0,
+        minResourceFee: "200",
+      },
+      result: {} as any,
+      results: [{} as any],
       events: [],
-      latestLedger: 1,
-    } as any);
+      raw: {
+        result: { retval: {} as any },
+        minResourceFee: "200",
+        transactionData: {} as any,
+        events: [],
+        latestLedger: 1,
+      } as any,
+    });
     jest.spyOn(client, "submitTransaction").mockResolvedValue({
       status: "SUCCESS",
       latestLedger: 1,
@@ -112,8 +124,22 @@ describe("Vault Deposit Method", () => {
 
   test("deposit rejects when simulation fails", async () => {
     jest.spyOn(client, "simulateTransaction").mockResolvedValue({
-      error: "simulation error",
-    } as any);
+      status: "FAILED",
+      success: false,
+      resourceUsage: {
+        cpuInstructions: 0,
+        memoryBytes: 0,
+        minResourceFee: "0",
+      },
+      error: {
+        message: "simulation error",
+        raw: { error: "simulation error" },
+      },
+      events: [],
+      raw: {
+        error: "simulation error",
+      } as any,
+    });
     await expect(vault.deposit(500n)).rejects.toThrow();
   });
 });

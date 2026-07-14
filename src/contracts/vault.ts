@@ -8,7 +8,7 @@ import {
   xdr,
   TransactionBuilder
 } from '@stellar/stellar-sdk';
-import { StellarClient } from '../client/stellarClient';
+import { StellarClient, SimulationResult } from '../client/stellarClient';
 import { WalletConnector } from '../wallet/walletConnector';
 
 /**
@@ -69,6 +69,44 @@ export class ProtoxVault {
   }
 
   /**
+   * Simulates depositing tokens into the vault.
+   */
+  async simulateDeposit(
+    amount: number | bigint,
+    sourceAccount?: string
+  ): Promise<SimulationResult> {
+    const address = sourceAccount || (this.wallet ? await this.wallet.getAddress() : 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+    const transaction = await this.buildUnsignedTransaction(
+      address,
+      'deposit',
+      [
+        new Address(address).toScVal(),
+        nativeToScVal(BigInt(amount), { type: 'i128' })
+      ]
+    );
+    return await this.client.simulateTransaction(transaction);
+  }
+
+  /**
+   * Simulates withdrawing tokens from the vault.
+   */
+  async simulateWithdraw(
+    amount: number | bigint,
+    sourceAccount?: string
+  ): Promise<SimulationResult> {
+    const address = sourceAccount || (this.wallet ? await this.wallet.getAddress() : 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF');
+    const transaction = await this.buildUnsignedTransaction(
+      address,
+      'withdraw',
+      [
+        new Address(address).toScVal(),
+        nativeToScVal(BigInt(amount), { type: 'i128' })
+      ]
+    );
+    return await this.client.simulateTransaction(transaction);
+  }
+
+  /**
    * Fetches the user's share balance in the vault.
    */
   async getBalance(userAddress: string, useCache: boolean = true): Promise<bigint> {
@@ -89,24 +127,34 @@ export class ProtoxVault {
   }
 
   /**
+   * Internal helper to build an unsigned transaction.
+   */
+  private async buildUnsignedTransaction(
+    sourceAccount: string,
+    functionName: string,
+    args: xdr.ScVal[]
+  ): Promise<Transaction> {
+    const txBuilder = await this.client.buildTransaction(sourceAccount);
+    txBuilder.addOperation(this.contract.call(functionName, ...args));
+    return txBuilder.build();
+  }
+
+  /**
    * Internal helper to build and simulate contract calls.
    */
   private async buildContractCall(functionName: string, args: xdr.ScVal[]): Promise<Transaction> {
     if (!this.wallet) throw new Error("Wallet not connected");
     const sourceAccount = await this.wallet.getAddress();
 
-    const txBuilder = await this.client.buildTransaction(sourceAccount);
-    txBuilder.addOperation(this.contract.call(functionName, ...args));
-
-    const transaction = txBuilder.build();
+    const transaction = await this.buildUnsignedTransaction(sourceAccount, functionName, args);
     
     // Simulate to get fee and footprint
     const simulation = await this.client.simulateTransaction(transaction);
-    if (SorobanRpc.Api.isSimulationError(simulation)) {
-      throw new Error(`Simulation failed: ${JSON.stringify(simulation)}`);
+    if (!simulation.success) {
+      throw new Error(`Simulation failed: ${simulation.error?.message}`);
     }
 
-    const assembledTransaction = SorobanRpc.assembleTransaction(transaction, simulation);
+    const assembledTransaction = SorobanRpc.assembleTransaction(transaction, simulation.raw as any);
     return await this.wallet.sign(assembledTransaction.build());
   }
 
@@ -120,21 +168,20 @@ export class ProtoxVault {
   ): Promise<xdr.ScVal> {
     // We use a dummy address for simulation if no wallet is connected
     const dummyAccount = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
-    const txBuilder = await this.client.buildTransaction(dummyAccount);
-    txBuilder.addOperation(this.contract.call(functionName, ...args));
-
-    const transaction = txBuilder.build();
+    const transaction = await this.buildUnsignedTransaction(dummyAccount, functionName, args);
     const simulation = await this.client.simulateTransaction(transaction, useCache);
     
-    if (SorobanRpc.Api.isSimulationError(simulation)) {
-      throw new Error(`Simulation failed: ${JSON.stringify(simulation)}`);
+    if (!simulation.success) {
+      throw new Error(`Simulation failed: ${simulation.error?.message}`);
     }
 
-    if (!simulation.result) {
+    const raw = simulation.raw as any;
+    const retval = raw.results?.[0]?.retval || raw.result?.retval;
+    if (!retval) {
       throw new Error("No result in simulation");
     }
 
-    return simulation.result.retval;
+    return retval;
   }
 
   // TODO: Implement claim_rewards function

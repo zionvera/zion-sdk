@@ -1,5 +1,7 @@
 export * from './client/stellarClient';
 export * from './contracts/vault';
+export * from './contracts/pending';
+export * from './contracts/rewards';
 export * from './wallet/walletConnector';
 export * from './utils/networkConfig';
 
