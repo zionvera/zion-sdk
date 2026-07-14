@@ -3,6 +3,8 @@ import { DEFAULT_NETWORK, Network } from './networkConfig';
 /**
  * Normalized shape for a single transaction record.
  */
+
+
 export interface TransactionRecord {
   id: string;
   hash: string;
