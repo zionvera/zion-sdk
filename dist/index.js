@@ -18,6 +18,8 @@ exports.VERSION = void 0;
 exports.createProtoxVault = createProtoxVault;
 __exportStar(require("./client/stellarClient"), exports);
 __exportStar(require("./contracts/vault"), exports);
+__exportStar(require("./contracts/pending"), exports);
+__exportStar(require("./contracts/rewards"), exports);
 __exportStar(require("./wallet/walletConnector"), exports);
 __exportStar(require("./utils/networkConfig"), exports);
 /**
@@ -30,3 +32,4 @@ function createProtoxVault(contractAddress, client, wallet) {
 }
 // TODO: Export helper classes for building custom transactions
 // TODO: Add support for multi-sig and advanced wallet patterns
+__exportStar(require("./utils/transactionFetcher"), exports);

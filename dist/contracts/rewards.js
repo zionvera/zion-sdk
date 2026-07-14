@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProtoxVault = void 0;
+exports.Rewards = void 0;
 const stellar_sdk_1 = require("@stellar/stellar-sdk");
 /**
  * ProtoxVault is the main interface for interacting with the Protox Vault contract.
  */
-class ProtoxVault {
+class Rewards {
     contract;
     client;
     wallet;
@@ -71,15 +71,15 @@ class ProtoxVault {
     /**
      * Fetches the user's share balance in the vault.
      */
-    async getBalance(userAddress, useCache = true) {
-        const result = await this.simulateCall('get_balance', [new stellar_sdk_1.Address(userAddress).toScVal()], useCache);
+    async getBalance(userAddress) {
+        const result = await this.simulateCall('get_balance', [new stellar_sdk_1.Address(userAddress).toScVal()]);
         return (0, stellar_sdk_1.scValToNative)(result);
     }
     /**
      * Fetches the total shares issued by the vault.
      */
-    async getTotalShares(useCache = true) {
-        const result = await this.simulateCall('get_total_shares', [], useCache);
+    async getTotalShares() {
+        const result = await this.simulateCall('get_total_shares', []);
         return (0, stellar_sdk_1.scValToNative)(result);
     }
     /**
@@ -109,11 +109,11 @@ class ProtoxVault {
     /**
      * Internal helper for read-only contract calls (simulation).
      */
-    async simulateCall(functionName, args, useCache = false) {
+    async simulateCall(functionName, args) {
         // We use a dummy address for simulation if no wallet is connected
         const dummyAccount = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
         const transaction = await this.buildUnsignedTransaction(dummyAccount, functionName, args);
-        const simulation = await this.client.simulateTransaction(transaction, useCache);
+        const simulation = await this.client.simulateTransaction(transaction);
         if (!simulation.success) {
             throw new Error(`Simulation failed: ${simulation.error?.message}`);
         }
@@ -125,4 +125,4 @@ class ProtoxVault {
         return retval;
     }
 }
-exports.ProtoxVault = ProtoxVault;
+exports.Rewards = Rewards;

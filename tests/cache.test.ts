@@ -3,7 +3,7 @@ import { StellarClient, ProtoxVault, NETWORKS } from '../src';
 import { SorobanRpc } from '@stellar/stellar-sdk';
 
 // We need to mock the SorobanRpc.Server's simulateTransaction method specifically
-const mockSimulate = jest.fn().mockResolvedValue({
+const mockSimulate = (jest.fn() as any).mockResolvedValue({
   result: { retval: (jest.requireActual('@stellar/stellar-sdk') as any).nativeToScVal(100n, { type: 'i128' }) },
 });
 
@@ -11,10 +11,30 @@ jest.mock('@stellar/stellar-sdk', () => {
   const actual = jest.requireActual('@stellar/stellar-sdk') as any;
   return {
     ...actual,
+    Contract: jest.fn().mockImplementation((address: any) => {
+      return {
+        address: () => ({ toString: () => address }),
+        call: jest.fn().mockReturnValue(new actual.xdr.Operation({
+          sourceAccount: null,
+          body: actual.xdr.OperationBody.invokeHostFunction(
+            new actual.xdr.InvokeHostFunctionOp({
+              hostFunction: actual.xdr.HostFunction.hostFunctionTypeInvokeContract(
+                new actual.xdr.InvokeContractArgs({
+                  contractAddress: actual.xdr.ScAddress.scAddressTypeContract(Buffer.alloc(32)),
+                  functionName: 'get_balance',
+                  args: [],
+                })
+              ),
+              auth: [],
+            })
+          ),
+        })),
+      };
+    }),
     SorobanRpc: {
       ...actual.SorobanRpc,
       Server: jest.fn().mockImplementation(() => ({
-        getAccount: jest.fn().mockResolvedValue(new actual.Account('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF', '1')),
+        getAccount: (jest.fn() as any).mockResolvedValue(new actual.Account('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF', '1')),
         simulateTransaction: mockSimulate,
       })),
     },

@@ -4,7 +4,7 @@ import { WalletConnector } from '../wallet/walletConnector';
 /**
  * ProtoxVault is the main interface for interacting with the Protox Vault contract.
  */
-export declare class ProtoxVault {
+export declare class Rewards {
     contract: Contract;
     client: StellarClient;
     wallet?: WalletConnector;
@@ -32,11 +32,11 @@ export declare class ProtoxVault {
     /**
      * Fetches the user's share balance in the vault.
      */
-    getBalance(userAddress: string, useCache?: boolean): Promise<bigint>;
+    getBalance(userAddress: string): Promise<bigint>;
     /**
      * Fetches the total shares issued by the vault.
      */
-    getTotalShares(useCache?: boolean): Promise<bigint>;
+    getTotalShares(): Promise<bigint>;
     /**
      * Internal helper to build an unsigned transaction.
      */
